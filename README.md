@@ -1,6 +1,10 @@
-# Joban Client Mod
+# Yomi's Joban Client Mod
 
-Joban Client Mod (Abbreviated as JCM) is an addon based on [Minecraft Transit Railway](https://github.com/jonafanho/Minecraft-Transit-Railway) Mod, adding various blocks from the Hong Kong MTR and utility blocks that will greatly improve your world.
+An unofficial version of Joban Client Mod.
+
+Only 1.20(.1).
+
+Yomi's Joban Client Mod (Abbreviated as YJCM) is an addon based on [Minecraft Transit Railway](https://github.com/jonafanho/Minecraft-Transit-Railway) Mod, adding various blocks from the Hong Kong MTR and utility blocks that will greatly improve your world.
 
 Some of the blocks this mod adds including custom signal light, fare saver machine, the Railway Vision PIDS and more! 
 

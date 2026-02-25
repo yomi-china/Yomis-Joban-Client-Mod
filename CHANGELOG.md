@@ -10,4 +10,4 @@ MTR 3.2.2 -> Latest
 # Minecraft 1.20
 
 ## Downloads
-[Published on Modrinth](https://modrinth.com/mod/jcm/versions), or download with the following links:
+[Github release](https://github.com/yomi-china/Yomis-Joban-Client-Mod/releases)
