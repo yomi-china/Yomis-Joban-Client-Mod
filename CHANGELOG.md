@@ -1,10 +1,10 @@
-# Joban Client Mod 1.2.2 has been released
+# Yomi's Joban Client Mod 1.2.4 has been released
 
 ## Compatible MTR Version
 MTR 3.2.2 -> Latest
 
 ## Changes
-- Due to the possible frequent changes and refactoring of the main mod's PIDS system, all PIDS within JCM are now independent, as in they no longer rely on the main mod's PIDS to function. This should also hopefully mean future PIDS Update on the MTR Mod will not crash and doesn't require us to push an update as fast as possible.
+- Compatible with YMTR.
 - PIDS Preset may now specify the color displayed when the PIDS is showing different cars, see [wiki](https://www.joban.tk/wiki/JCM:Joban_PIDS#Cars_Color) for details.
 - Fences on Thales Ticket Barrier (Bare) will no longer disappear as long as there's any block next to the barrier fence.
 
@@ -21,11 +21,4 @@ On Fabric, the blocks are located in a separate creative tab, while on Forge it 
 No support for MC 1.20 will be given at the moment, use at your own risk (And with backup!).
 
 ## Downloads
-[Published on Modrinth](https://modrinth.com/mod/jcm/versions), or download with the following links:  
-[Minecraft 1.16.5](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.16.5-1.2.2.jar)  
-[Minecraft 1.17.1](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.17.1-1.2.2.jar)  
-[Minecraft 1.18.2](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.18.2-1.2.2.jar)  
-[Minecraft 1.19.2](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.19.2-1.2.2.jar)  
-[Minecraft 1.19.3](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.19.3-1.2.2.jar)  
-[Minecraft 1.19.4](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.19.4-1.2.2.jar)  
-[Minecraft 1.20 (Not officially supported)](https://joban.tk/JCM/1.2.2/Joban-Client-Mod-1.20-1.2.2.jar)
+[Published on Modrinth](https://modrinth.com/mod/jcm/versions), or download with the following links:

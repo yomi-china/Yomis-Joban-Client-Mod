@@ -96,21 +96,30 @@ public class SoundLooperScreen extends ScreenMapper implements IGui {
     protected void init() {
         super.init();
         int i = 1;
+
         IDrawing.setPositionAndWidth(buttonCategory, width - SQUARE_SIZE - BUTTON_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxSoundId, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
+
+        int soundRow = i;
+        IDrawing.setPositionAndWidth(textBoxSoundId, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * soundRow + SQUARE_SIZE, TEXT_FIELD_WIDTH);
+        IDrawing.setPositionAndWidth(textBoxNetworkAudioUrl, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * soundRow + SQUARE_SIZE, TEXT_FIELD_WIDTH);
+        i++;
+
         IDrawing.setPositionAndWidth(textBoxSoundVolume, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
         IDrawing.setPositionAndWidth(textBoxRepeatTick, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
         IDrawing.setPositionAndWidth(checkBoxLimitRange, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
         IDrawing.setPositionAndWidth(checkBoxNeedRedstone, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxx1, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 3), FINAL_TEXT_HEIGHT * (i) + SQUARE_SIZE, POS_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxy1, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 2), FINAL_TEXT_HEIGHT * (i) + SQUARE_SIZE, POS_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxz1, width - SQUARE_SIZE - POS_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, POS_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxx2, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 3), FINAL_TEXT_HEIGHT * (i) + SQUARE_SIZE, POS_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxy2, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 2), FINAL_TEXT_HEIGHT * (i) + SQUARE_SIZE, POS_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxz2, width - SQUARE_SIZE - POS_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i) + SQUARE_SIZE, POS_FIELD_WIDTH);
+
+        IDrawing.setPositionAndWidth(textBoxx1, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 3), FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        IDrawing.setPositionAndWidth(textBoxy1, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 2), FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        IDrawing.setPositionAndWidth(textBoxz1, width - SQUARE_SIZE - POS_FIELD_WIDTH, FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        i++;
+
+        IDrawing.setPositionAndWidth(textBoxx2, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 3), FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        IDrawing.setPositionAndWidth(textBoxy2, width - SQUARE_SIZE - (POS_FIELD_WIDTH * 2), FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        IDrawing.setPositionAndWidth(textBoxz2, width - SQUARE_SIZE - POS_FIELD_WIDTH, FINAL_TEXT_HEIGHT * i + SQUARE_SIZE, POS_FIELD_WIDTH);
+        i++;
 
         IDrawing.setPositionAndWidth(checkBoxUseNetworkAudio, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
-        IDrawing.setPositionAndWidth(textBoxNetworkAudioUrl, width - SQUARE_SIZE - TEXT_FIELD_WIDTH, FINAL_TEXT_HEIGHT * (i++) + SQUARE_SIZE, TEXT_FIELD_WIDTH);
 
         final Level world = Minecraft.getInstance().level;
         if (world != null) {

@@ -5,7 +5,7 @@ license = "Apache 2.0"
 [[mods]]
 modId = "jsblock"
 version = "${version}"
-displayName = "Joban Client Mod"
+displayName = "Yomi's Joban Client Mod"
 authors = "LX86, StrikeSNC, AozoraSky, Yomi_307"
 description = "Add static signal light, PIDS and HK-Specific decoration blocks to the MTR Mod."
 logoFile = "icon.png"

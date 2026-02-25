@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "jsblock",
 	"version": "${version}",
-	"name": "Joban Client Mod",
+	"name": "Yomi's Joban Client Mod",
 	"description": "Add static signal light, PIDS and HK-Specific decoration blocks to the MTR Mod.",
 	"authors": [
 		"LX86",

@@ -62,7 +62,7 @@ subprojects {
 
 forgix {
 	group = project.maven_group
-	mergedJarName = "Joban-Client-Mod-${minecraft_version}-${project.mod_version}.jar"
+	mergedJarName = "MTR-YJCM-${minecraft_version}-${project.mod_version}.jar"
 	outputDir = "build" // This is the output directory of the merged jar from the root project. If this property is not defined then by default it's set to "Merged".
 
 	forge {
