@@ -1,0 +1,229 @@
+package com.jsblock.packet;
+
+import com.jsblock.Joban;
+import com.jsblock.block.ButterflyLight;
+import com.jsblock.block.FareSaver1;
+import com.jsblock.block.JobanPIDSBase;
+import com.jsblock.block.PIDSRVBase;
+import com.jsblock.block.SoundLooper;
+import com.jsblock.block.SubsidyMachine1;
+import io.netty.buffer.Unpooled;
+import mtr.Registry;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.block.entity.BlockEntity;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_BUTTERFLY_CONFIG_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_FARESAVER_CONFIG_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_JOBAN_PIDS_CONFIG_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_RV_PIDS_CONFIG_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_SOUND_LOOPER_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_SUBSIDY_CONFIG_SCREEN;
+import static com.jsblock.packet.IPacketJoban.PACKET_PLAY_NETWORK_SOUND;
+import static com.jsblock.packet.IPacketJoban.PACKET_VERSION_CHECK;
+import static mtr.data.SerializedDataBase.PACKET_STRING_READ_LENGTH;
+
+/**
+ * This class is responsible for handling packets, that should be executed on the SERVER side, e.g.
+ * Method for sending packets from the Server to Client (S2C)
+ * Method for handling packets sent from the Client to Server (C2S)
+ */
+public class PacketServer {
+
+    public static void receiveButterflyC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos = packet.readBlockPos();
+        final int countdown = packet.readInt();
+        minecraftServer.execute(() -> {
+            final BlockEntity entity = player.level().getBlockEntity(pos);
+            if (entity instanceof ButterflyLight.TileEntityButterFlyLight) {
+                ((ButterflyLight.TileEntityButterFlyLight) entity).setData(countdown);
+            }
+        });
+    }
+
+    public static void receiveFaresaverC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos = packet.readBlockPos();
+        final int discount = packet.readInt();
+        minecraftServer.execute(() -> {
+            final BlockEntity entity = player.level().getBlockEntity(pos);
+            if (entity instanceof FareSaver1.TileEntityFareSaver) {
+                ((FareSaver1.TileEntityFareSaver) entity).setAllData(discount);
+            }
+        });
+    }
+
+    /* When Server receives the new RV PIDS Config sent by client */
+    public static void receiveRVPIDSConfigC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos1 = packet.readBlockPos();
+        final BlockPos pos2 = packet.readBlockPos();
+        final int maxArrivals = packet.readInt();
+        final String[] messages = new String[maxArrivals];
+        final boolean[] hideArrivals = new boolean[maxArrivals];
+        for (int i = 0; i < maxArrivals; i++) {
+            messages[i] = packet.readUtf(PACKET_STRING_READ_LENGTH);
+            hideArrivals[i] = packet.readBoolean();
+        }
+        final int platformIdCount = packet.readInt();
+        final Set<Long> platformIds = new HashSet<>();
+        for (int i = 0; i < platformIdCount; i++) {
+            platformIds.add(packet.readLong());
+        }
+
+        final boolean hidePlatformNumber = packet.readBoolean();
+        final String presetID = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        minecraftServer.execute(() -> {
+            final BlockEntity entity1 = player.level().getBlockEntity(pos1);
+            if (entity1 instanceof PIDSRVBase.TileEntityBlockRVPIDS) {
+                ((PIDSRVBase.TileEntityBlockRVPIDS) entity1).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID);
+            }
+            final BlockEntity entity2 = player.level().getBlockEntity(pos2);
+            if (entity2 instanceof PIDSRVBase.TileEntityBlockRVPIDS) {
+                ((PIDSRVBase.TileEntityBlockRVPIDS) entity2).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID);
+            }
+        });
+    }
+
+    /* When Server receives the new Joban PIDS Config sent by client */
+    public static void receiveJobanPIDSConfigC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos1 = packet.readBlockPos();
+        final BlockPos pos2 = packet.readBlockPos();
+        final int maxArrivals = packet.readInt();
+        final String[] messages = new String[maxArrivals];
+        final boolean[] hideArrivals = new boolean[maxArrivals];
+        for (int i = 0; i < maxArrivals; i++) {
+            messages[i] = packet.readUtf(PACKET_STRING_READ_LENGTH);
+            hideArrivals[i] = packet.readBoolean();
+        }
+        final int platformIdCount = packet.readInt();
+        final Set<Long> platformIds = new HashSet<>();
+        for (int i = 0; i < platformIdCount; i++) {
+            platformIds.add(packet.readLong());
+        }
+
+        /* On 1.16.5, readString() is client-side only */
+        /* Have to use the overload for it to work on server as well */
+        final String presetID = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        minecraftServer.execute(() -> {
+            final BlockEntity entity1 = player.level().getBlockEntity(pos1);
+            if (entity1 instanceof JobanPIDSBase.TileEntityBlockPIDSBaseHorizontal) {
+                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity1).setData(messages, hideArrivals, platformIds, 1, presetID);
+            }
+            final BlockEntity entity2 = player.level().getBlockEntity(pos2);
+            if (entity2 instanceof JobanPIDSBase.TileEntityBlockPIDSBaseHorizontal) {
+                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity2).setData(messages, hideArrivals, platformIds, 1, presetID);
+            }
+        });
+    }
+
+    public static void receiveSoundLooperC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos = packet.readBlockPos();
+        final BlockPos pos1 = packet.readBlockPos();
+        final BlockPos pos2 = packet.readBlockPos();
+        final String soundId = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final int soundCategory = packet.readInt();
+        final int interval = packet.readInt();
+        final float volume = packet.readFloat();
+        final boolean needRedstone = packet.readBoolean();
+        final boolean limitRange = packet.readBoolean();
+
+        final boolean useNetworkAudio = packet.readBoolean();
+        final String networkAudioUrl = packet.readUtf(PACKET_STRING_READ_LENGTH);
+
+        minecraftServer.execute(() -> {
+            final BlockEntity entity = player.level().getBlockEntity(pos);
+            if (entity instanceof SoundLooper.TileEntitySoundLooper) {
+                ((SoundLooper.TileEntitySoundLooper) entity).setData(
+                        soundId, soundCategory, interval, volume, needRedstone, limitRange,
+                        pos1, pos2, useNetworkAudio, networkAudioUrl
+                );
+            }
+        });
+    }
+
+    public static void receiveSubsidyC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos = packet.readBlockPos();
+        final int pricePerClick = packet.readInt();
+        final int timeout = packet.readInt();
+        minecraftServer.execute(() -> {
+            final BlockEntity entity = player.level().getBlockEntity(pos);
+            if (entity instanceof SubsidyMachine1.TileEntitySubsidyMachine) {
+                ((SubsidyMachine1.TileEntitySubsidyMachine) entity).setData(pricePerClick, timeout);
+            }
+        });
+    }
+
+    /* Version check packet (The client is the one responsible for disconnecting) */
+    public static void sendVersionCheckS2C(ServerPlayer player) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeUtf(Joban.getVersion().split("-hotfix-")[0]);
+        Registry.sendToPlayer(player, PACKET_VERSION_CHECK, packet);
+    }
+
+    /* Packet to open the Butterfly Light Configuration GUI in client */
+    public static void sendButterflyConfigScreenS2C(ServerPlayer player, BlockPos pos1, int countdown) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos1);
+        packet.writeInt(countdown);
+        Registry.sendToPlayer(player, PACKET_OPEN_BUTTERFLY_CONFIG_SCREEN, packet);
+    }
+
+    /* Packet to open the Fare Saver Configuration GUI in client */
+    public static void sendFaresaverConfigScreenS2C(ServerPlayer player, BlockPos pos1, int discount) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos1);
+        packet.writeInt(discount);
+        Registry.sendToPlayer(player, PACKET_OPEN_FARESAVER_CONFIG_SCREEN, packet);
+    }
+
+    /* Packet to open the Joban PIDS Configuration GUI in client */
+    public static void sendJobanPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, String presetID) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos1);
+        packet.writeBlockPos(pos2);
+        packet.writeInt(maxArrivals);
+        packet.writeUtf(presetID);
+        Registry.sendToPlayer(player, PACKET_OPEN_JOBAN_PIDS_CONFIG_SCREEN, packet);
+    }
+
+    /* Packet to open the Railway Vision PIDS Configuration GUI in client */
+    public static void sendRVPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, boolean hidePlatformNumber, String presetID) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos1);
+        packet.writeBlockPos(pos2);
+        packet.writeInt(maxArrivals);
+        packet.writeBoolean(hidePlatformNumber);
+        packet.writeUtf(presetID);
+        Registry.sendToPlayer(player, PACKET_OPEN_RV_PIDS_CONFIG_SCREEN, packet);
+    }
+
+    /* Packet to open the Subsidy Machine Configuration GUI in client */
+    public static void sendSubsidyConfigScreenS2C(ServerPlayer player, BlockPos pos, int pricePerClick, int timeout) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos);
+        packet.writeInt(pricePerClick);
+        packet.writeInt(timeout);
+        Registry.sendToPlayer(player, PACKET_OPEN_SUBSIDY_CONFIG_SCREEN, packet);
+    }
+
+    /* Packet to open the Sound Looper GUI in client */
+    public static void sendSoundLooperScreenS2C(ServerPlayer player, BlockPos pos) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos);
+        Registry.sendToPlayer(player, PACKET_OPEN_SOUND_LOOPER_SCREEN, packet);
+    }
+
+    public static void sendPlayNetworkSoundS2C(ServerPlayer player, String url, SoundSource source, BlockPos pos, float volume) {
+        FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeUtf(url);
+        packet.writeInt(source.ordinal());
+        packet.writeBlockPos(pos);
+        packet.writeFloat(volume);
+        Registry.sendToPlayer(player, PACKET_PLAY_NETWORK_SOUND, packet);
+    }
+}

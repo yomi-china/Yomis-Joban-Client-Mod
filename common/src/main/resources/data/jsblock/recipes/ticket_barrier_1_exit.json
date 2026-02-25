@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "jsblock:ticket_barrier_1_entrance"
+    }
+  ],
+  "result": {
+    "item": "jsblock:ticket_barrier_1_exit"
+  }
+}

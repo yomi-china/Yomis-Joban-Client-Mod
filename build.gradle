@@ -1,0 +1,297 @@
+import groovy.json.JsonSlurper
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+	id "architectury-plugin" version "3.4-SNAPSHOT"
+	id "dev.architectury.loom" version "1.0-SNAPSHOT" apply false
+	id "de.undercouch.download" version "5.4.0"
+	id "com.github.johnrengelman.shadow" version "7.1.2"
+	id "io.github.pacifistmc.forgix" version "1.2.6"
+}
+
+def default_minecraft_version = "1.20"
+def is_unofficial = true
+def minecraft_version = project.properties.containsKey("buildVersion") ? project.getProperties().get("buildVersion") : default_minecraft_version
+def minecraft_major_version = minecraft_version.split("\\.")[0] as int // Always return 1, unless mojang goes haywire :P
+def minecraft_main_version = minecraft_version.split("\\.")[1] as int
+def minecraft_minor_version = minecraft_version.split("\\.").size() > 2 ? minecraft_version.split("\\.")[2] as int : 0
+def minecraft_version_str = (minecraft_major_version as String) + (minecraft_main_version as String).padLeft(2, '0') + (minecraft_minor_version as String).padLeft(2, '0')
+def use_absolute_version = (minecraft_version_str as int) >= 11903
+def is_1_20 = minecraft_version == "1.20"
+
+rootProject.ext.minecraft_version = minecraft_version
+rootProject.ext.mc_requirement = use_absolute_version ? minecraft_version : "${minecraft_major_version}.${minecraft_main_version}.x"
+rootProject.ext.architectury_version = getModrinthVersion("forge", minecraft_version, "architectury-api").split("\\+")[0]
+rootProject.ext.fabric_loader_version = new JsonSlurper().parse(("https://meta.fabricmc.net/v2/versions/loader/" + minecraft_version).toURL())[0]["loader"]["version"]
+rootProject.ext.yarn_version = new JsonSlurper().parse(("https://meta.fabricmc.net/v2/versions/yarn/" + minecraft_version).toURL())[0]["version"]
+rootProject.ext.fabric_api_version = getModrinthVersion("fabric", minecraft_version, "fabric-api")
+rootProject.ext.forge_version = minecraft_version + "-" + new JsonSlurper().parse(("https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json").toURL())["promos"][minecraft_version + "-latest"]
+rootProject.ext.mod_menu_version = getModrinthVersion("fabric", minecraft_version, "modmenu")
+rootProject.ext.architectury_id = minecraft_main_version == 16 ? "me.shedaniel" : "dev.architectury"
+
+architectury {
+	minecraft = minecraft_version
+}
+
+subprojects {
+	apply plugin: "dev.architectury.loom"
+
+	loom {
+		silentMojangMappingsLicense()
+	}
+
+	dependencies {
+		annotationProcessor 'systems.manifold:manifold-preprocessor:2023.1.8'
+		minecraft "com.mojang:minecraft:${minecraft_version}"
+		mappings loom.layered() {
+			officialMojangMappings()
+
+			if(project.properties["parchment_${minecraft_version_str}"] != null) {
+				// Provide param mappings
+				parchment("org.parchmentmc.data:parchment-${project.properties["parchment_${minecraft_version_str}"]}@zip")
+			}
+		}
+
+		implementation files("../checkouts/${project.properties.containsKey("mtr_artifact_id") ? project.mtr_artifact_id : minecraft_version}/mtr-common.jar")
+		implementation("org.spongepowered:mixin:0.8.5")
+		annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
+	}
+
+	build.finalizedBy(mergeJars)
+}
+
+forgix {
+	group = project.maven_group
+	mergedJarName = "Joban-Client-Mod-${minecraft_version}-${project.mod_version}.jar"
+	outputDir = "build" // This is the output directory of the merged jar from the root project. If this property is not defined then by default it's set to "Merged".
+
+	forge {
+		projectName = "forge" // This is the name of the forge project. If this property is not defined then by default it'll set to "forge" since that's the name the Architectury Template uses.
+		jarLocation = "build/libs/forge-${minecraft_version}-${project.mod_version}.jar" // This is the location of the forge jar from the forge project. If this property is not defined then by default it fetches the jar with the shortest name.
+
+		mixin "jsblock-common.mixins.json" // This is in case if we didn't auto detect the forge mixins.
+	}
+
+	fabric {
+		projectName = "fabric" // This is the name of the fabric project. If this property is not defined then by default it'll set to "fabric" since that's the name the Architectury Template uses.
+		jarLocation = "build/libs/fabric-${minecraft_version}-${project.mod_version}.jar" // This is the location of the fabric jar from the fabric project. If this property is not defined then by default it fetches the jar with the shortest name.
+	}
+}
+
+task setupLibrary() {
+	doLast {
+		if(project.properties.containsKey("mtr_artifact_id")) {
+			def url = "https://nightly.link/jonafanho/Minecraft-Transit-Railway/actions/runs/${project.mtr_artifact_id}/Libraries.zip"
+			def destination = "checkouts/${project.mtr_artifact_id}/artifact.zip"
+			def tempFolder = "checkouts/${project.mtr_artifact_id}/tmp"
+			println("An MTR Artifact ID is specified in gradle.properties, depending on that instead.")
+			if(!new File(destination).exists()) {
+				println("Downloading MTR artifacts...")
+				println("View the run at: https://github.com/jonafanho/Minecraft-Transit-Railway/actions/runs/${project.mtr_artifact_id}")
+				download.run {
+					src url
+					dest destination
+					overwrite true
+				}
+			}
+
+			if(new File(destination).exists() && !new File(tempFolder).exists()) {
+				println("Unzipping downloaded zip...")
+				copy {
+					from(zipTree(destination))
+					into tempFolder
+				}
+			}
+
+			def folder = new File(tempFolder)
+			folder.eachFileRecurse (groovy.io.FileType.FILES) { file ->
+				if (file.name.contains(minecraft_version as String)) {
+					if(file.name.contains("common")) {
+						file.renameTo("checkouts/${project.mtr_artifact_id}/mtr-common.jar")
+					}
+
+					if(file.name.contains("fabric")) {
+						file.renameTo("checkouts/${project.mtr_artifact_id}/mtr-fabric.jar")
+					}
+
+					if(file.name.contains("forge")) {
+						file.renameTo("checkouts/${project.mtr_artifact_id}/mtr-forge.jar")
+					}
+				}
+			}
+
+			ant.delete(dir: "checkouts/${project.mtr_artifact_id}/tmp")
+			ant.delete(file: destination)
+		} else {
+			if (is_unofficial) {
+				copy {
+					from "libs/mtr-common.jar"
+					into "checkouts/${minecraft_version}"
+					rename "mtr-common.jar", "mtr-common.jar"
+				}
+
+				copy {
+					from "libs/mtr-fabric.jar"
+					into "checkouts/${minecraft_version}"
+					rename "mtr-fabric.jar", "mtr-fabric.jar"
+				}
+
+				copy {
+					from "libs/mtr-forge.jar"
+					into "checkouts/${minecraft_version}"
+					rename "mtr-forge.jar", "mtr-forge.jar"
+				}
+			} else {
+				String baseURL = is_1_20 ? "https://storage.zbx1425.cn/mtr-artifacts/libs/" : "https://www.minecrafttransitrailway.com/libs/"
+				download.run {
+					src "${baseURL}${rootProject.mtr_version}/MTR-common-${minecraft_version}-${rootProject.mtr_version}-dev.jar"
+					dest "checkouts/${minecraft_version}/mtr-common.jar"
+					overwrite true
+				}
+
+				download.run {
+					src "${baseURL}${rootProject.mtr_version}/MTR-fabric-${minecraft_version}-${rootProject.mtr_version}-dev-shadow.jar"
+					dest "checkouts/${minecraft_version}/mtr-fabric.jar"
+					overwrite true
+				}
+
+				download.run {
+					src "${baseURL}${rootProject.mtr_version}/MTR-forge-${minecraft_version}-${rootProject.mtr_version}-dev-shadow.jar"
+					dest "checkouts/${minecraft_version}/mtr-forge.jar"
+					overwrite true
+				}
+			}
+		}
+	}
+}
+
+task setupFiles() {
+	println("Architectury: " + rootProject.architectury_version)
+	println("Fabric API: " + rootProject.fabric_api_version)
+	println("Fabric Loader: " + rootProject.fabric_loader_version)
+	println("Forge: " + rootProject.forge_version)
+	println("Mod Menu: " + rootProject.mod_menu_version)
+
+	/* Download MTR if not exist */
+	if(!new File("checkouts/${project.properties.containsKey("mtr_artifact_id") ? project.mtr_artifact_id : minecraft_version}").exists()) {
+		println("MTR version ${project.properties.containsKey("mtr_artifact_id") ? project.mtr_artifact_id : minecraft_version} not found, will download...")
+		setupFiles.dependsOn 'setupLibrary'
+	} else {
+		println("MTR is already downloaded. Update any time by running ./gradlew setupLibrary")
+	}
+
+	String baseURL = is_1_20 ? "https://storage.zbx1425.cn/mtr-artifacts/Minecraft-Mappings/" : "https://github.com/jonafanho/Minecraft-Mappings/archive/refs/heads/"
+	try {
+		download.run {
+			src "${baseURL}${use_absolute_version ? minecraft_version : "1." + minecraft_main_version}.zip"
+			dest "common/src/main/java/com/jsblock/mappings/files.zip"
+			overwrite true
+		}
+	} catch (Exception e) {
+		e.printStackTrace()
+		logger.warn("Cannot download version mappings file! Build may fail when switching versions.")
+	}
+
+	if(new File("common/src/main/java/com/jsblock/mappings/files.zip").exists()) {
+		copy {
+			outputs.upToDateWhen { false }
+			from(zipTree("common/src/main/java/com/jsblock/mappings/files.zip")) { eachFile { file -> file.relativePath = new RelativePath(true, file.relativePath.segments.drop(1) as String[]) } }
+			into "common/src/main/java/com/jsblock/mappings"
+			filter(ReplaceTokens, tokens: ["package": "com.jsblock.mappings; import mtr.mappings.*"])
+		}
+
+		ant.path { ant.fileset(dir: "common/src/main/java/com/jsblock/mappings", includes: "Fabric*.java") }.list().each {
+			ant.move(file: it, todir: "fabric/src/main/java/com/jsblock/mappings")
+		}
+
+		ant.path { ant.fileset(dir: "common/src/main/java/com/jsblock/mappings", includes: "Forge*.java") }.list().each {
+			ant.move(file: it, todir: "forge/src/main/java/com/jsblock/mappings")
+		}
+
+		ant.delete(dir: "common/src/main/java/com/jsblock/mappings")
+	}
+
+	copy {
+		outputs.upToDateWhen { false }
+		from "checkouts/${project.properties.containsKey("mtr_artifact_id") ? project.mtr_artifact_id : minecraft_version}/mtr-fabric.jar"
+		into "fabric/run/mods"
+	}
+
+	copy {
+		outputs.upToDateWhen { false }
+		from "checkouts/${project.properties.containsKey("mtr_artifact_id") ? project.mtr_artifact_id : minecraft_version}/mtr-forge.jar"
+		into "forge/run/mods"
+	}
+}
+
+task setupMapping() {
+	mustRunAfter setupFiles
+
+	copy {
+		outputs.upToDateWhen { false }
+		from "common/src/main/resources/assets/jsblock/auto_iron_door_${minecraft_main_version == 20 ? "120" : minecraft_main_version == 19 ? "119" : "118"}.json"
+		into "common/src/main/resources/assets/jsblock/blockstates"
+		rename "auto_iron_door(.*).json", "auto_iron_door.json"
+	}
+}
+
+allprojects {
+	apply plugin: "architectury-plugin"
+
+	version = minecraft_version + "-" + project.mod_version
+	group = project.maven_group
+
+	repositories {
+		maven { url = "https://maven.terraformersmc.com/" }
+		maven {
+			name = 'ParchmentMC'
+			url = 'https://maven.parchmentmc.org'
+		}
+	}
+
+	tasks.withType(JavaCompile) {
+		options.encoding = "UTF-8"
+
+		if (minecraft_main_version == 16) {
+			def targetVersion = 8
+			if (JavaVersion.current().isJava9Compatible()) {
+				options.release = targetVersion
+			}
+		} else if (minecraft_main_version == 17) {
+			options.release = 16
+		} else {
+			options.release = 17
+		}
+
+		options.compilerArgs += ['-Xplugin:Manifold', '-AMC_VERSION=' + minecraft_version_str]
+	}
+
+	afterEvaluate {
+		for (def task in it.tasks) {
+			if (task != rootProject.tasks.setupFiles && task != rootProject.tasks.setupLibrary) {
+				/* Run setupFiles first */
+				task.dependsOn rootProject.tasks.setupFiles
+			}
+		}
+	}
+}
+
+static def getModrinthVersion(loader, minecraftVersion, projectId) {
+	def versionsArray = new JsonSlurper().parse(("https://api.modrinth.com/v2/project/" + projectId + "/version").toURL())
+	for (def versionElement : versionsArray) {
+		if (versionElement["loaders"].contains(loader) && versionElement["game_versions"].contains(minecraftVersion)) {
+			return versionElement["version_number"]
+		}
+	}
+	return ""
+}
+
+static def getGithubTagVersion(owner, repo, minecraftVersion) {
+	def versionsArray = new JsonSlurper().parse(("https://api.github.com/repos/${owner}/${repo}/tags").toURL())
+	for(def tag : versionsArray) {
+		if(tag["name"].contains(minecraftVersion)) {
+			return tag["name"].split("releases/${minecraftVersion}-")[1]
+		}
+	}
+	return "none"
+}

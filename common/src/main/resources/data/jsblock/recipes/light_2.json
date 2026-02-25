@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "jsblock:light_1"
+    }
+  ],
+  "result": {
+    "item": "jsblock:light_2",
+    "count": 16
+  }
+}

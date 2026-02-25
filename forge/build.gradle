@@ -1,0 +1,74 @@
+plugins {
+	id "com.github.johnrengelman.shadow"
+}
+
+loom {
+	forge {
+		mixinConfig "jsblock-common.mixins.json"
+	}
+}
+
+architectury {
+	platformSetupLoomIde()
+	forge()
+}
+
+configurations {
+	common
+	shadowCommon
+	compileClasspath.extendsFrom common
+	runtimeClasspath.extendsFrom common
+	developmentForge.extendsFrom common
+}
+
+dependencies {
+	forge "net.minecraftforge:forge:${rootProject.forge_version}"
+	modApi "${rootProject.architectury_id}:architectury-forge:${rootProject.architectury_version}"
+
+	common(project(path: ":common", configuration: "namedElements")) { transitive false }
+	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive = false }
+}
+
+processResources {
+	filesMatching("META-INF/mods.toml") {
+		expand (
+			"version": "${project.mod_version}+mc${rootProject.minecraft_version}",
+			"mc_version": rootProject.mc_requirement.replace(".x", "")
+		)
+	}
+}
+
+shadowJar {
+	exclude "fabric.mod.json"
+
+	configurations = [project.configurations.shadowCommon]
+	classifier "dev-shadow"
+}
+
+remapJar {
+	input.set shadowJar.archiveFile
+	dependsOn shadowJar
+	classifier null
+}
+
+components.java {
+	withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+		skip()
+	}
+}
+
+task moveForgeBuilds() {
+//	doLast {
+//		delete fileTree("../build").matching {
+//			include "**/Joban-Client-Mod-forge*"
+//		}
+//	}
+}
+
+afterEvaluate {
+	for (def task in it.tasks) {
+		if (task == tasks.build) {
+			task.finalizedBy tasks.moveForgeBuilds
+		}
+	}
+}
