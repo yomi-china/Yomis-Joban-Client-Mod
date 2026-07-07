@@ -21,7 +21,7 @@ side = "BOTH"
 [[dependencies.jsblock]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[${mc_version},)"
+versionRange = "[1.20,1.20.2)"
 ordering = "NONE"
 side = "BOTH"
 

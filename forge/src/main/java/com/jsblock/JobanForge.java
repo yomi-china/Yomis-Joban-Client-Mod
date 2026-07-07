@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -43,6 +44,7 @@ public class JobanForge {
 		BLOCK_ENTITY_TYPES.register();
 		PARTICLE_TYPES.register();
 		eventBus.register(MTRForgeRegistry.class);
+		DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () -> eventBus.register(ForgeUtilities.ClientsideEvents.class));
 	}
 
 	private static void registerBlock(String path, RegistryObject<Block> block) {
