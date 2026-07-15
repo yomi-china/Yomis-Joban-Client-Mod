@@ -4,7 +4,6 @@ import com.jsblock.client.JobanCustomResources;
 import com.jsblock.mappings.ForgeConfig;
 import com.jsblock.mappings.ForgeUtilities;
 import mtr.CreativeModeTabs;
-import mtr.Registry;
 import mtr.RegistryObject;
 import mtr.mappings.BlockEntityMapper;
 import mtr.mappings.DeferredRegisterHolder;
@@ -13,16 +12,25 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+
+import java.lang.reflect.Field;
+import java.util.*;
 
 @Mod(Joban.MOD_ID)
 public class JobanForge {
@@ -31,9 +39,64 @@ public class JobanForge {
 	private static final DeferredRegisterHolder<Block> BLOCKS = new DeferredRegisterHolder<>(Joban.MOD_ID, ForgeUtilities.registryGetBlock());
 	private static final DeferredRegisterHolder<BlockEntityType<?>> BLOCK_ENTITY_TYPES = new DeferredRegisterHolder<>(Joban.MOD_ID, ForgeUtilities.registryGetBlockEntityType());
 	private static final DeferredRegisterHolder<ParticleType<?>> PARTICLE_TYPES = new DeferredRegisterHolder<>(Joban.MOD_ID, ForgeUtilities.registryGetParticleType());
+	private static final DeferredRegisterHolder<CreativeModeTab> CREATIVE_MODE_TABS = new DeferredRegisterHolder<>(Joban.MOD_ID, net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB);
+
+	private static final Map<ResourceLocation, List<Item>> TAB_ITEMS = new LinkedHashMap<>();
 
 	static {
-		Joban.init(JobanForge::registerBlock, JobanForge::registerItem,JobanForge::registerBlockAndItems, JobanForge::registerBlockEntityType, JobanForge::registerParticle);
+		CREATIVE_MODE_TABS.register("core", () -> CreativeModeTab.builder()
+				.icon(() -> new ItemStack(Blocks.HELPLINE_3.get()))
+				.title(Component.translatable("itemGroup.jsblock.core"))
+				.build());
+		CREATIVE_MODE_TABS.register("pids", () -> CreativeModeTab.builder()
+				.icon(() -> new ItemStack(Blocks.PIDS_RV_TCL.get()))
+				.title(Component.translatable("itemGroup.jsblock.pids"))
+				.build());
+		CREATIVE_MODE_TABS.register("ceiling", () -> CreativeModeTab.builder()
+				.icon(() -> new ItemStack(Blocks.STATION_CEILING_1.get()))
+				.title(Component.translatable("itemGroup.jsblock.ceiling"))
+				.build());
+
+		Joban.init(JobanForge::registerBlock, JobanForge::registerItem, JobanForge::registerBlockAndItems, JobanForge::registerBlockEntityType, JobanForge::registerParticle);
+
+		// ItemGroups instantiation triggers MTR's creative tab registration
+		// (via CreativeModeTabs.Wrapper → Registry.getCreativeModeTab()),
+		// which adds JCM entries to MTR's static CREATIVE_TAB_ORDER.
+		// Since JCM now registers its own creative tabs independently, we
+		// must remove our entries from MTR's maps before MTR's constructor
+		// creates duplicate empty tabs that cause gaps in the tab bar.
+		// This static block runs before any @Mod constructors.
+		removeJcmEntriesFromMtrStaticMaps();
+	}
+
+	/**
+	 * Cleans up JCM entries that were inadvertently added to MTR's static
+	 * creative tab maps via the CreativeModeTabs.Wrapper constructor path.
+	 * Without this cleanup, MTR's registerCreativeModeTabsToDeferredRegistry
+	 * would create empty duplicate tabs (mtr:core, etc.) alongside JCM's
+	 * own tabs (jsblock:core, etc.), causing gaps in the creative tab bar.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void removeJcmEntriesFromMtrStaticMaps() {
+		try {
+			Class<?> mtrForgeUtils = Class.forName("mtr.forge.mappings.ForgeUtilities");
+
+			Field orderField = mtrForgeUtils.getDeclaredField("CREATIVE_TAB_ORDER");
+			orderField.setAccessible(true);
+			List<ResourceLocation> orderList = (List<ResourceLocation>) orderField.get(null);
+			if (orderList != null) {
+				orderList.removeIf(rl -> Joban.MOD_ID.equals(rl.getNamespace()));
+			}
+
+			Field tabsField = mtrForgeUtils.getDeclaredField("CREATIVE_TABS");
+			tabsField.setAccessible(true);
+			Map<ResourceLocation, ?> tabsMap = (Map<ResourceLocation, ?>) tabsField.get(null);
+			if (tabsMap != null) {
+				tabsMap.keySet().removeIf(rl -> Joban.MOD_ID.equals(rl.getNamespace()));
+			}
+		} catch (Exception e) {
+			Joban.LOGGER.warn("[Joban Client] Could not clean up MTR creative tab entries: {}", e.toString());
+		}
 	}
 
 	public JobanForge() {
@@ -43,6 +106,8 @@ public class JobanForge {
 		BLOCKS.register();
 		BLOCK_ENTITY_TYPES.register();
 		PARTICLE_TYPES.register();
+		CREATIVE_MODE_TABS.register();
+		eventBus.register(CreativeTabHandler.class);
 		eventBus.register(MTRForgeRegistry.class);
 		DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () -> eventBus.register(ForgeUtilities.ClientsideEvents.class));
 	}
@@ -63,13 +128,30 @@ public class JobanForge {
 		registerBlock(path, block);
 		ITEMS.register(path, () -> {
 			final BlockItem blockItem = new BlockItem(block.get(), RegistryUtilities.createItemProperties(creativeModeTabWrapper::get));
-			Registry.registerCreativeModeTab(creativeModeTabWrapper.resourceLocation, blockItem);
+			TAB_ITEMS.computeIfAbsent(creativeModeTabWrapper.resourceLocation, k -> new ArrayList<>()).add(blockItem);
 			return blockItem;
 		});
 	}
 
 	private static <T extends BlockEntityMapper> void registerBlockEntityType(String path, RegistryObject<? extends BlockEntityType<? extends BlockEntityMapper>> blockEntityType) {
 		BLOCK_ENTITY_TYPES.register(path, blockEntityType::get);
+	}
+
+	public static class CreativeTabHandler {
+
+		@SubscribeEvent
+		public static void onBuildCreativeModeTabContents(BuildCreativeModeTabContentsEvent event) {
+			ResourceLocation key = BuiltInRegistries.CREATIVE_MODE_TAB.getKey(event.getTab());
+			if (key == null || !key.getNamespace().equals(Joban.MOD_ID)) {
+				return;
+			}
+			List<Item> items = TAB_ITEMS.get(key);
+			if (items != null) {
+				for (Item item : items) {
+					event.getEntries().put(new ItemStack(item), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+				}
+			}
+		}
 	}
 
 	private static class MTRForgeRegistry {
@@ -80,7 +162,7 @@ public class JobanForge {
 			ForgeConfig.registerConfig();
 
 			ForgeUtilities.registerTextureStitchEvent(textureAtlas -> {
-				if (((TextureAtlas)textureAtlas).location().getPath().equals("textures/atlas/blocks.png")) {
+				if (((TextureAtlas) textureAtlas).location().getPath().equals("textures/atlas/blocks.png")) {
 					JobanCustomResources.reload(Minecraft.getInstance().getResourceManager());
 				}
 			});
