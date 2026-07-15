@@ -8,17 +8,24 @@ import com.jsblock.client.JobanCustomResources;
 import com.jsblock.data.PIDSPreset;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import mtr.client.ClientData;
 import mtr.client.IDrawing;
 import mtr.data.IGui;
+import mtr.data.Platform;
+import mtr.data.RailwayData;
+import mtr.data.ScheduleEntry;
 import mtr.mappings.BlockEntityMapper;
 import mtr.mappings.BlockEntityRendererMapper;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Abstract class to handle all the preprocessing of Joban PIDS.<br>
@@ -53,7 +60,69 @@ public abstract class RenderPIDSBase<T extends BlockEntityMapper> extends BlockE
         final boolean[] hideArrivals = new boolean[maxArrivals];
         final boolean hidePlatforms;
         final String presetID = ((JobanPIDSBase.TileEntityBlockJobanPIDS)entity).getPresetID();
-        final PIDSPreset preset = JobanCustomResources.PIDSPresets.getOrDefault(presetID, null);
+        PIDSPreset preset = JobanCustomResources.PIDSPresets.getOrDefault(presetID, null);
+
+        /* Auto-switch presets based on train arrival/departure time */
+        final JobanPIDSBase.TileEntityBlockJobanPIDS jobanEntity = (JobanPIDSBase.TileEntityBlockJobanPIDS) entity;
+        if (jobanEntity.getDepAutoSwitchEnabled() || jobanEntity.getAutoSwitchEnabled()) {
+            final BlockPos pos = entity.getBlockPos();
+            final List<ScheduleEntry> scheduleList = new ArrayList<>();
+            long primaryPlatformId = 0;
+
+            if (!platformIds.isEmpty()) {
+                for (long platformId : platformIds) {
+                    final Set<ScheduleEntry> schedules = ClientData.SCHEDULES_FOR_PLATFORM.get(platformId);
+                    if (schedules != null) {
+                        scheduleList.addAll(schedules);
+                    }
+                }
+                primaryPlatformId = platformIds.get(0);
+            } else {
+                final long closestPlatformId = RailwayData.getClosePlatformId(ClientData.PLATFORMS, ClientData.DATA_CACHE, pos);
+                primaryPlatformId = closestPlatformId;
+                final Set<ScheduleEntry> schedules = ClientData.SCHEDULES_FOR_PLATFORM.get(closestPlatformId);
+                if (schedules != null) {
+                    scheduleList.addAll(schedules);
+                }
+            }
+
+            if (!scheduleList.isEmpty()) {
+                Collections.sort(scheduleList);
+                final ScheduleEntry firstEntry = scheduleList.get(0);
+                final long diff = firstEntry.arrivalMillis - System.currentTimeMillis();
+
+                /* Priority 1: Departure auto-switch (only when train is at platform) */
+                if (jobanEntity.getDepAutoSwitchEnabled() && diff <= 0) {
+                    final int timeSinceArrivalSec = (int)(-diff / 1000);
+                    final Platform platform = ClientData.DATA_CACHE.platformIdMap.get(primaryPlatformId);
+                    final int depCountdownSec = platform != null ? (platform.getDwellTime() / 2) - timeSinceArrivalSec : 0;
+                    final boolean inWindow;
+                    if (jobanEntity.getDepAutoSwitchUntilClose()) {
+                        inWindow = depCountdownSec > 0 && depCountdownSec <= jobanEntity.getDepAutoSwitchCountdown();
+                    } else {
+                        inWindow = (depCountdownSec > 0 && depCountdownSec <= jobanEntity.getDepAutoSwitchCountdown()) ||
+                                   (depCountdownSec <= 0 && depCountdownSec > -jobanEntity.getDepAutoSwitchDuration());
+                    }
+                    if (inWindow) {
+                        final PIDSPreset depPreset = JobanCustomResources.PIDSPresets.getOrDefault(jobanEntity.getDepAutoSwitchPreset(), null);
+                        if (depPreset != null) {
+                            preset = depPreset;
+                        }
+                    }
+                }
+                /* Priority 2: Arrival auto-switch (lower priority than departure) */
+                /* Check !(departure switch active) to avoid overriding departure preset */
+                if (preset == JobanCustomResources.PIDSPresets.getOrDefault(presetID, null) && jobanEntity.getAutoSwitchEnabled()) {
+                    if ((diff > 0 && diff <= jobanEntity.getAutoSwitchCountdown() * 1000L) ||
+                        (diff <= 0 && diff > -jobanEntity.getAutoSwitchDuration() * 1000L)) {
+                        final PIDSPreset arrPreset = JobanCustomResources.PIDSPresets.getOrDefault(jobanEntity.getAutoSwitchPreset(), null);
+                        if (arrPreset != null) {
+                            preset = arrPreset;
+                        }
+                    }
+                }
+            }
+        }
 
         if(preset != null && preset.visibility != null) {
             System.arraycopy(preset.visibility, 0, hideArrivals, 0, hideArrivals.length);

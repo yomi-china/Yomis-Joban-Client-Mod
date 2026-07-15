@@ -77,14 +77,23 @@ public class PacketServer {
 
         final boolean hidePlatformNumber = packet.readBoolean();
         final String presetID = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final boolean autoSwitchEnabled = packet.readBoolean();
+        final String autoSwitchPreset = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final int autoSwitchCountdown = packet.readInt();
+        final int autoSwitchDuration = packet.readInt();
+        final boolean depAutoSwitchEnabled = packet.readBoolean();
+        final String depAutoSwitchPreset = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final int depAutoSwitchCountdown = packet.readInt();
+        final int depAutoSwitchDuration = packet.readInt();
+        final boolean depAutoSwitchUntilClose = packet.readBoolean();
         minecraftServer.execute(() -> {
             final BlockEntity entity1 = player.level().getBlockEntity(pos1);
             if (entity1 instanceof PIDSRVBase.TileEntityBlockRVPIDS) {
-                ((PIDSRVBase.TileEntityBlockRVPIDS) entity1).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID);
+                ((PIDSRVBase.TileEntityBlockRVPIDS) entity1).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID, autoSwitchEnabled, autoSwitchPreset, autoSwitchCountdown, autoSwitchDuration, depAutoSwitchEnabled, depAutoSwitchPreset, depAutoSwitchCountdown, depAutoSwitchDuration, depAutoSwitchUntilClose);
             }
             final BlockEntity entity2 = player.level().getBlockEntity(pos2);
             if (entity2 instanceof PIDSRVBase.TileEntityBlockRVPIDS) {
-                ((PIDSRVBase.TileEntityBlockRVPIDS) entity2).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID);
+                ((PIDSRVBase.TileEntityBlockRVPIDS) entity2).setData(messages, hideArrivals, platformIds, 0, hidePlatformNumber, presetID, autoSwitchEnabled, autoSwitchPreset, autoSwitchCountdown, autoSwitchDuration, depAutoSwitchEnabled, depAutoSwitchPreset, depAutoSwitchCountdown, depAutoSwitchDuration, depAutoSwitchUntilClose);
             }
         });
     }
@@ -109,14 +118,23 @@ public class PacketServer {
         /* On 1.16.5, readString() is client-side only */
         /* Have to use the overload for it to work on server as well */
         final String presetID = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final boolean autoSwitchEnabled = packet.readBoolean();
+        final String autoSwitchPreset = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final int autoSwitchCountdown = packet.readInt();
+        final int autoSwitchDuration = packet.readInt();
+        final boolean depAutoSwitchEnabled = packet.readBoolean();
+        final String depAutoSwitchPreset = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final int depAutoSwitchCountdown = packet.readInt();
+        final int depAutoSwitchDuration = packet.readInt();
+        final boolean depAutoSwitchUntilClose = packet.readBoolean();
         minecraftServer.execute(() -> {
             final BlockEntity entity1 = player.level().getBlockEntity(pos1);
             if (entity1 instanceof JobanPIDSBase.TileEntityBlockPIDSBaseHorizontal) {
-                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity1).setData(messages, hideArrivals, platformIds, 1, presetID);
+                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity1).setData(messages, hideArrivals, platformIds, 1, presetID, autoSwitchEnabled, autoSwitchPreset, autoSwitchCountdown, autoSwitchDuration, depAutoSwitchEnabled, depAutoSwitchPreset, depAutoSwitchCountdown, depAutoSwitchDuration, depAutoSwitchUntilClose);
             }
             final BlockEntity entity2 = player.level().getBlockEntity(pos2);
             if (entity2 instanceof JobanPIDSBase.TileEntityBlockPIDSBaseHorizontal) {
-                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity2).setData(messages, hideArrivals, platformIds, 1, presetID);
+                ((JobanPIDSBase.TileEntityBlockJobanPIDS) entity2).setData(messages, hideArrivals, platformIds, 1, presetID, autoSwitchEnabled, autoSwitchPreset, autoSwitchCountdown, autoSwitchDuration, depAutoSwitchEnabled, depAutoSwitchPreset, depAutoSwitchCountdown, depAutoSwitchDuration, depAutoSwitchUntilClose);
             }
         });
     }
@@ -182,23 +200,41 @@ public class PacketServer {
     }
 
     /* Packet to open the Joban PIDS Configuration GUI in client */
-    public static void sendJobanPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, String presetID) {
+    public static void sendJobanPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, String presetID, boolean autoSwitchEnabled, String autoSwitchPreset, int autoSwitchCountdown, int autoSwitchDuration, boolean depAutoSwitchEnabled, String depAutoSwitchPreset, int depAutoSwitchCountdown, int depAutoSwitchDuration, boolean depAutoSwitchUntilClose) {
         final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
         packet.writeBlockPos(pos1);
         packet.writeBlockPos(pos2);
         packet.writeInt(maxArrivals);
         packet.writeUtf(presetID);
+        packet.writeBoolean(autoSwitchEnabled);
+        packet.writeUtf(autoSwitchPreset);
+        packet.writeInt(autoSwitchCountdown);
+        packet.writeInt(autoSwitchDuration);
+        packet.writeBoolean(depAutoSwitchEnabled);
+        packet.writeUtf(depAutoSwitchPreset);
+        packet.writeInt(depAutoSwitchCountdown);
+        packet.writeInt(depAutoSwitchDuration);
+        packet.writeBoolean(depAutoSwitchUntilClose);
         Registry.sendToPlayer(player, PACKET_OPEN_JOBAN_PIDS_CONFIG_SCREEN, packet);
     }
 
     /* Packet to open the Railway Vision PIDS Configuration GUI in client */
-    public static void sendRVPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, boolean hidePlatformNumber, String presetID) {
+    public static void sendRVPIDSConfigScreenS2C(ServerPlayer player, BlockPos pos1, BlockPos pos2, int maxArrivals, boolean hidePlatformNumber, String presetID, boolean autoSwitchEnabled, String autoSwitchPreset, int autoSwitchCountdown, int autoSwitchDuration, boolean depAutoSwitchEnabled, String depAutoSwitchPreset, int depAutoSwitchCountdown, int depAutoSwitchDuration, boolean depAutoSwitchUntilClose) {
         final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
         packet.writeBlockPos(pos1);
         packet.writeBlockPos(pos2);
         packet.writeInt(maxArrivals);
         packet.writeBoolean(hidePlatformNumber);
         packet.writeUtf(presetID);
+        packet.writeBoolean(autoSwitchEnabled);
+        packet.writeUtf(autoSwitchPreset);
+        packet.writeInt(autoSwitchCountdown);
+        packet.writeInt(autoSwitchDuration);
+        packet.writeBoolean(depAutoSwitchEnabled);
+        packet.writeUtf(depAutoSwitchPreset);
+        packet.writeInt(depAutoSwitchCountdown);
+        packet.writeInt(depAutoSwitchDuration);
+        packet.writeBoolean(depAutoSwitchUntilClose);
         Registry.sendToPlayer(player, PACKET_OPEN_RV_PIDS_CONFIG_SCREEN, packet);
     }
 

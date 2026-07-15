@@ -33,7 +33,10 @@ public abstract class PIDSRVBase extends JobanPIDSBase {
             if (entity1 instanceof TileEntityBlockRVPIDS && entity2 instanceof TileEntityBlockRVPIDS) {
                 ((TileEntityBlockRVPIDS) entity1).syncData();
                 ((TileEntityBlockRVPIDS) entity2).syncData();
-                PacketServer.sendRVPIDSConfigScreenS2C((ServerPlayer) player, pos, otherPos, ((TileEntityBlockRVPIDS) entity1).getMaxArrivals(), ((TileEntityBlockRVPIDS) entity1).getHidePlatformNumber(), ((TileEntityBlockRVPIDS) entity1).getPresetID());
+                PacketServer.sendRVPIDSConfigScreenS2C((ServerPlayer) player, pos, otherPos, ((TileEntityBlockRVPIDS) entity1).getMaxArrivals(),
+                        ((TileEntityBlockRVPIDS) entity1).getHidePlatformNumber(), ((TileEntityBlockRVPIDS) entity1).getPresetID(),
+                        ((TileEntityBlockRVPIDS) entity1).getAutoSwitchEnabled(), ((TileEntityBlockRVPIDS) entity1).getAutoSwitchPreset(), ((TileEntityBlockRVPIDS) entity1).getAutoSwitchCountdown(), ((TileEntityBlockRVPIDS) entity1).getAutoSwitchDuration(),
+                        ((TileEntityBlockRVPIDS) entity1).getDepAutoSwitchEnabled(), ((TileEntityBlockRVPIDS) entity1).getDepAutoSwitchPreset(), ((TileEntityBlockRVPIDS) entity1).getDepAutoSwitchCountdown(), ((TileEntityBlockRVPIDS) entity1).getDepAutoSwitchDuration(), ((TileEntityBlockRVPIDS) entity1).getDepAutoSwitchUntilClose());
             }
         });
     }
@@ -58,8 +61,11 @@ public abstract class PIDSRVBase extends JobanPIDSBase {
             super.writeCompoundTag(compoundTag);
         }
 
-        public void setData(String[] messages, boolean[] hideArrival, Set<Long> platformIds, int displayPage, boolean hidePlatformNumber, String presetID) {
-            super.setData(messages, hideArrival, platformIds, displayPage, presetID);
+        public void setData(String[] messages, boolean[] hideArrival, Set<Long> platformIds, int displayPage, boolean hidePlatformNumber, String presetID,
+                            boolean autoSwitchEnabled, String autoSwitchPreset, int autoSwitchCountdown, int autoSwitchDuration,
+                            boolean depAutoSwitchEnabled, String depAutoSwitchPreset, int depAutoSwitchCountdown, int depAutoSwitchDuration, boolean depAutoSwitchUntilClose) {
+            super.setData(messages, hideArrival, platformIds, displayPage, presetID, autoSwitchEnabled, autoSwitchPreset, autoSwitchCountdown, autoSwitchDuration,
+                    depAutoSwitchEnabled, depAutoSwitchPreset, depAutoSwitchCountdown, depAutoSwitchDuration, depAutoSwitchUntilClose);
             this.hidePlatformNumber = hidePlatformNumber;
             this.setChanged();
             this.syncData();

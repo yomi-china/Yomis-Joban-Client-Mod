@@ -204,8 +204,12 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
                     final boolean isCJK = IGui.isCjk(destinationString);
                     if (seconds >= 60) {
                         arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_min_cjk" : "gui.mtr.arrival_min", seconds / 60);
+                    } else if (seconds > 0) {
+                        arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_sec_cjk" : "gui.mtr.arrival_sec", seconds);
+                    } else if (seconds > -5) {
+                        arrivalText = Text.translatable("gui.jsblock.train_arrived");
                     } else {
-                        arrivalText = seconds > 0 ? Text.translatable(isCJK ? "gui.mtr.arrival_sec_cjk" : "gui.mtr.arrival_sec", seconds) : null;
+                        arrivalText = null;
                     }
 
 
