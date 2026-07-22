@@ -70,7 +70,7 @@
   "block.jsblock.ticket_barrier_1_entrance": "Thales 閘機 (入口)",
   "block.jsblock.ticket_barrier_1_exit": "Thales 閘機 (出口)",
   "block.jsblock.ticket_barrier_1_bare": "Thales 閘機 (側殼)",
-  "gui.jsblock.train_arrived": "車已進站",
+  "gui.jsblock.train_arrived": "列車到站",
   "gui.jsblock.brand": "Joban Client Mod",
   "gui.jsblock.butterfly_countdown": "列車關門前時間開始閃動(秒)",
   "gui.jsblock.version": "版本 %s",

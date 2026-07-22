@@ -92,8 +92,8 @@ public class RVPIDSConfigScreen extends ScreenMapper implements IGui, IPacket {
 
     private int fieldX;
     private int presetY;
-    private int arrCheckY, arrPresetY, arrNumY;
-    private int depCheckY, depPresetY, depNumY, depUntilY;
+    private int arrCheckY, arrPresetY, arrNumY, arrDurY;
+    private int depCheckY, depPresetY, depNumY, depDurY, depUntilY;
     private int hidePlatY;
 
     public RVPIDSConfigScreen(BlockPos pos1, BlockPos pos2, int maxArrivals, boolean hidePlatformNumber, String presetID,
@@ -217,8 +217,10 @@ public class RVPIDSConfigScreen extends ScreenMapper implements IGui, IPacket {
         IDrawing.setPositionAndWidth(autoSwitchCountdownTextField, fieldX, y, NUM_FIELD_W);
         autoSwitchCountdownTextField.setValue(String.valueOf(autoSwitchCountdown));
         addDrawableChild(autoSwitchCountdownTextField);
+        y += ROW_H;
 
-        IDrawing.setPositionAndWidth(autoSwitchDurationTextField, fieldX + NUM_FIELD_W + SQUARE_SIZE, y, NUM_FIELD_W);
+        arrDurY = y;
+        IDrawing.setPositionAndWidth(autoSwitchDurationTextField, fieldX, y, NUM_FIELD_W);
         autoSwitchDurationTextField.setValue(String.valueOf(autoSwitchDuration));
         addDrawableChild(autoSwitchDurationTextField);
         y += ROW_H + SECTION_GAP;
@@ -239,8 +241,10 @@ public class RVPIDSConfigScreen extends ScreenMapper implements IGui, IPacket {
         IDrawing.setPositionAndWidth(depAutoSwitchCountdownTextField, fieldX, y, NUM_FIELD_W);
         depAutoSwitchCountdownTextField.setValue(String.valueOf(depAutoSwitchCountdown));
         addDrawableChild(depAutoSwitchCountdownTextField);
+        y += ROW_H;
 
-        IDrawing.setPositionAndWidth(depAutoSwitchDurationTextField, fieldX + NUM_FIELD_W + SQUARE_SIZE, y, NUM_FIELD_W);
+        depDurY = y;
+        IDrawing.setPositionAndWidth(depAutoSwitchDurationTextField, fieldX, y, NUM_FIELD_W);
         depAutoSwitchDurationTextField.setValue(String.valueOf(depAutoSwitchDuration));
         depAutoSwitchDurationTextField.setEditable(!depAutoSwitchUntilClose);
         addDrawableChild(depAutoSwitchDurationTextField);
@@ -334,8 +338,6 @@ public class RVPIDSConfigScreen extends ScreenMapper implements IGui, IPacket {
             final int shGap = font.lineHeight + 10;
             final int baseY = (SQUARE_SIZE - font.lineHeight) / 2;
             final int msgLabelY = SQUARE_SIZE * 4 + TEXT_PADDING - font.lineHeight - 4;
-            final int arrDurFieldX = fieldX + NUM_FIELD_W + SQUARE_SIZE;
-            final int depDurFieldX = fieldX + NUM_FIELD_W + SQUARE_SIZE;
 
             g.enableScissor(0, 0, width, height);
             g.pose().pushPose();
@@ -349,12 +351,12 @@ public class RVPIDSConfigScreen extends ScreenMapper implements IGui, IPacket {
             g.drawString(font, arrSectionText, SQUARE_SIZE, arrCheckY - shGap, ARGB_YELLOW);
             g.drawString(font, autoSwitchPresetText, fieldX - font.width(autoSwitchPresetText) - 4, arrPresetY + baseY, ARGB_WHITE);
             g.drawString(font, autoSwitchCountdownText, fieldX - font.width(autoSwitchCountdownText) - 4, arrNumY + baseY, ARGB_WHITE);
-            g.drawString(font, autoSwitchDurationText, arrDurFieldX - font.width(autoSwitchDurationText) - 4, arrNumY + baseY, ARGB_WHITE);
+            g.drawString(font, autoSwitchDurationText, fieldX - font.width(autoSwitchDurationText) - 4, arrDurY + baseY, ARGB_WHITE);
 
             g.drawString(font, depSectionText, SQUARE_SIZE, depCheckY - shGap, ARGB_YELLOW);
             g.drawString(font, depAutoSwitchPresetText, fieldX - font.width(depAutoSwitchPresetText) - 4, depPresetY + baseY, ARGB_WHITE);
             g.drawString(font, depAutoSwitchCountdownText, fieldX - font.width(depAutoSwitchCountdownText) - 4, depNumY + baseY, ARGB_WHITE);
-            g.drawString(font, depAutoSwitchDurationText, depDurFieldX - font.width(depAutoSwitchDurationText) - 4, depNumY + baseY, ARGB_WHITE);
+            g.drawString(font, depAutoSwitchDurationText, fieldX - font.width(depAutoSwitchDurationText) - 4, depDurY + baseY, ARGB_WHITE);
 
             super.render(g, mouseX, adjMy, delta);
 

@@ -69,4 +69,4 @@ Enable Shorten Command Line (Edit Configuration)
 
 ## License
 
-[Apache 2.0](https://github.com/DistrictOfJoban/Joban-Client-Mod/blob/main/LICENSE)
+All Rights Reserved
