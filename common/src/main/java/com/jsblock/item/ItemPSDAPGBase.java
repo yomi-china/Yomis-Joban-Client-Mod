@@ -32,7 +32,7 @@ public class ItemPSDAPGBase extends Item implements IBlock {
     private final EnumPSDAPGType type;
 
     public ItemPSDAPGBase(EnumPSDAPGItem item, EnumPSDAPGType type) {
-        super(RegistryUtilities.createItemProperties(ItemGroups.MAIN::get));
+        super(new Item.Properties());
         this.item = item;
         this.type = type;
     }

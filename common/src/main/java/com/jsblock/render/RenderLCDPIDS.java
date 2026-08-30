@@ -200,16 +200,14 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
                     renderTextWithOffset(matrices, textRenderer, immediate, destinationString, 0, 0, screenWidth, 4, textColor, MAX_LIGHT_GLOWING, HorizontalAlignment.LEFT, VerticalAlignment.TOP, false, textFont);
                 } else {
                     final Component arrivalText;
-                    final int seconds = (int) ((currentSchedule.arrivalMillis - System.currentTimeMillis()) / 1000);
+                    final int seconds = (int) Math.round((currentSchedule.arrivalMillis - System.currentTimeMillis()) / 1000.0);
                     final boolean isCJK = IGui.isCjk(destinationString);
                     if (seconds >= 60) {
                         arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_min_cjk" : "gui.mtr.arrival_min", seconds / 60);
                     } else if (seconds > 0) {
                         arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_sec_cjk" : "gui.mtr.arrival_sec", seconds);
-                    } else if (seconds > -5) {
-                        arrivalText = Text.translatable("gui.jsblock.train_arrived");
                     } else {
-                        arrivalText = null;
+                        arrivalText = Text.translatable("gui.jsblock.train_arrived");
                     }
 
 

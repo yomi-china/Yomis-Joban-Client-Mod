@@ -3,7 +3,6 @@ package com.jsblock;
 import com.jsblock.client.JobanCustomResources;
 import com.jsblock.mappings.ForgeConfig;
 import com.jsblock.mappings.ForgeUtilities;
-import mtr.CreativeModeTabs;
 import mtr.RegistryObject;
 import mtr.mappings.BlockEntityMapper;
 import mtr.mappings.DeferredRegisterHolder;
@@ -124,11 +123,11 @@ public class JobanForge {
 		PARTICLE_TYPES.register(resourceLocation, Particles.LIGHT_BLOCK::get);
 	}
 
-	private static void registerBlockAndItems(String path, RegistryObject<Block> block, CreativeModeTabs.Wrapper creativeModeTabWrapper) {
+	private static void registerBlockAndItems(String path, RegistryObject<Block> block, ResourceLocation creativeModeTab) {
 		registerBlock(path, block);
 		ITEMS.register(path, () -> {
-			final BlockItem blockItem = new BlockItem(block.get(), RegistryUtilities.createItemProperties(creativeModeTabWrapper::get));
-			TAB_ITEMS.computeIfAbsent(creativeModeTabWrapper.resourceLocation, k -> new ArrayList<>()).add(blockItem);
+			final BlockItem blockItem = new BlockItem(block.get(), new Item.Properties());
+			TAB_ITEMS.computeIfAbsent(creativeModeTab, k -> new ArrayList<>()).add(blockItem);
 			return blockItem;
 		});
 	}

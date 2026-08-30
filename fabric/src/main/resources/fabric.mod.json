@@ -14,7 +14,7 @@
 		"homepage": "https://discord.gg/FNc2rgWmP2",
 		"sources": ""
 	},
-	"license": "All Rights Reserved",
+	"license": "MIT",
 	"icon": "icon.png",
 	"environment": "*",
 	"entrypoints": {

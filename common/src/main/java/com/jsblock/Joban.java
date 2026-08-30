@@ -3,11 +3,11 @@ package com.jsblock;
 import com.jsblock.packet.PacketServer;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import mtr.CreativeModeTabs;
 import mtr.Registry;
 import mtr.RegistryObject;
 import mtr.mappings.BlockEntityMapper;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -202,7 +202,7 @@ public class Joban {
 
     @FunctionalInterface
     public interface RegisterBlockItem {
-        void accept(String string, RegistryObject<Block> block, CreativeModeTabs.Wrapper tab);
+        void accept(String string, RegistryObject<Block> block, ResourceLocation tab);
     }
 
     @FunctionalInterface
