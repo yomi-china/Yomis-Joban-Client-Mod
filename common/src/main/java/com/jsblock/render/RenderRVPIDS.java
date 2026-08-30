@@ -218,10 +218,8 @@ public class RenderRVPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T>
                         arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_min_cjk" : "gui.mtr.arrival_min", seconds / 60);
                     } else if (seconds > 0) {
                         arrivalText = Text.translatable(isCJK ? "gui.mtr.arrival_sec_cjk" : "gui.mtr.arrival_sec", seconds);
-                    } else if (seconds > -5) {
-                        arrivalText = Text.translatable("gui.jsblock.train_arrived");
                     } else {
-                        arrivalText = null;
+                        arrivalText = Text.translatable("gui.jsblock.train_arrived");
                     }
 
                     /* PLATFORM */

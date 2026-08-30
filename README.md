@@ -10,6 +10,19 @@ Some of the blocks this mod adds including custom signal light, fare saver machi
 
 ![](https://user-images.githubusercontent.com/40461728/187031355-e71be327-e520-4add-aaba-dc9b6421fb44.png)
 
+> [!IMPORTANT]
+> ## License
+> This repository contains code from **two different sources**:
+>
+> | Part | License | Copyright |
+> |---|---|---|
+> | JCM (Joban Client Mod) code | MIT (see [LICENSE_JCM](LICENSE_JCM)) | AmberFrost, StrikeSNC, AozoraSky |
+> | YJCM original code (written by Yomi) | All Rights Reserved (see [LICENSE](LICENSE)) | Yomi (Yomi_307) |
+>
+> - The JCM portion may be used, modified, and distributed under the MIT License.
+> - The YJCM-specific code is **NOT open source**. Copying, redistributing, or modifying it without permission is prohibited.
+> - If you fork this repository, you must keep both license files and this notice.
+
 ## FAQ & Support
 ### Why does my game crash?
 There's a variety of reasons, one of the main reasons is that <b>you're using the wrong version of the MTR Mod</b>.  
@@ -66,7 +79,3 @@ Enable Shorten Command Line (Edit Configuration)
 2. <b>[IMPORTANT]</b> commit and push any uncommited files
 3. Delete the entire Joban Client Mod folder
 4. Re-clone the project
-
-## License
-
-All Rights Reserved
