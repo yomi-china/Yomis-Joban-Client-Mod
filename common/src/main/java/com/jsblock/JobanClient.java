@@ -1,27 +1,14 @@
 package com.jsblock;
 
-import com.jsblock.block.PIDS1A;
-import com.jsblock.block.PIDSLCD;
-import com.jsblock.block.PIDSRV;
-import com.jsblock.block.PIDSRVSIL1;
-import com.jsblock.block.PIDSRVSIL2;
+import com.jsblock.block.*;
 import com.jsblock.client.ClientConfig;
 import com.jsblock.packet.IPacketJoban;
 import com.jsblock.packet.PacketClient;
 import com.jsblock.particle.LightBlockParticle;
-import com.jsblock.render.RenderConstantSignalLight;
-import com.jsblock.render.RenderDepartureTimer;
-import com.jsblock.render.RenderFaresaver1;
-import com.jsblock.render.RenderJobanPSDAPG;
-import com.jsblock.render.RenderKCRStationName;
-import com.jsblock.render.RenderLCDPIDS;
-import com.jsblock.render.RenderRVPIDS;
-import com.jsblock.render.RenderSignalLight;
-import com.jsblock.render.RenderStationNameTall;
+import com.jsblock.render.*;
+import com.jsblock.scripting.Scripting;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import mtr.RegistryClient;
-import mtr.data.PIDSType;
-import mtr.render.RenderPIDS;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -35,9 +22,6 @@ public class JobanClient {
 
     public static void init() {
         ClientConfig.loadConfig();
-        if (ClientConfig.getRenderDisabled()) {
-            Joban.LOGGER.info("[Joban Client] Rendering for all JCM blocks are disabled.");
-        }
 
         /* Allow transparent texture for the block */
         RegistryClient.registerBlockRenderType(RenderType.cutout(), Blocks.APG_DOOR_DRL.get());
@@ -82,11 +66,35 @@ public class JobanClient {
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.FARESAVER_1_TILE_ENTITY.get(), RenderFaresaver1::new);
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.KCR_NAME_SIGN_TILE_ENTITY.get(), RenderKCRStationName::new);
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.KCR_NAME_SIGN_STATION_COLOR_TILE_ENTITY.get(), RenderKCRStationName::new);
-        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_1A_TILE_ENTITY.get(), dispatcher -> new RenderPIDS<>(dispatcher, PIDS1A.TileEntityBlockPIDS1A.MAX_ARRIVALS, PIDS1A.TileEntityBlockPIDS1A.LINES_PER_ARRIVAL, 1, 9.5F, 6, 8.8F, 30, true, false, PIDSType.PIDS, 0xFF9900, 0xFF9900));
+        /* The 1A PIDS is drawn by our RV renderer so that scripted presets get their canvas too;
+           the arguments are JCM 2.x's own for this block, and the script panel profile is
+           PIDS1ARenderer's literal rather than the RV default. */
+        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_1A_TILE_ENTITY.get(), dispatcher -> {
+            final RenderRVPIDS<PIDS1A.TileEntityBlockPIDS1A> renderer = new RenderRVPIDS<>(dispatcher, PIDS1A.TileEntityBlockPIDS1A.MAX_ARRIVALS, 1, 9.5F, 6, 8.8F, 30, true, false, 0xFF9900, 0, "pids_1a");
+            renderer.setScriptPanelProfile(-0.47F, -0.155F, -0.112F, 186, 60);
+            return renderer;
+        });
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_LCD_TILE_ENTITY.get(), dispatcher -> new RenderLCDPIDS<>(dispatcher, PIDSLCD.TileEntityBlockPIDS4.MAX_ARRIVALS, 5.7F, 9.5F, 6, 11.5F, 21, true, false, false, 0xEFE29E, 0));
-        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_TILE_ENTITY.get(), dispatcher -> new RenderRVPIDS<>(dispatcher, PIDSRV.TileEntityBlockPIDSRV.MAX_ARRIVALS, 6, 8.25F, 6, 11F, 20, true, false, 0x000000, 0));
-        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_SIL_TILE_ENTITY_1.get(), dispatcher -> new RenderRVPIDS<>(dispatcher, PIDSRVSIL1.TileEntityBlockPIDSSIL.MAX_ARRIVALS, 6F, 11.7F, 2.45F, 11F, 20.7F, true, false, 0x000000, 22.5F));
-        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_SIL_TILE_ENTITY_2.get(), dispatcher -> new RenderRVPIDS<>(dispatcher, PIDSRVSIL2.TileEntityBlockPIDSSIL.MAX_ARRIVALS, 6F, 11.7F, 2.45F, 11F, 20.7F, true, false, 0x000000, 22.5F));
+        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_TILE_ENTITY.get(), dispatcher -> new RenderRVPIDS<>(dispatcher, PIDSRV.TileEntityBlockPIDSRV.MAX_ARRIVALS, 6, 8.25F, 6, 11F, 20, true, false, 0x000000, 0, "rv_pids"));
+        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_SIL_TILE_ENTITY_1.get(), dispatcher -> {
+            final RenderRVPIDS<PIDSRVSIL1.TileEntityBlockPIDSSIL> renderer = new RenderRVPIDS<>(dispatcher, PIDSRVSIL1.TileEntityBlockPIDSSIL.MAX_ARRIVALS, 6F, 11.7F, 2.45F, 11F, 20.7F, true, false, 0x000000, 22.5F, "rv_pids_sil_1");
+            renderer.setScriptPanelProfile(-0.21F, -0.410F, -0.520F, 136, 76).setScriptPanelRotation(22.5F);
+            return renderer;
+        });
+        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_RV_SIL_TILE_ENTITY_2.get(), dispatcher -> {
+            final RenderRVPIDS<PIDSRVSIL2.TileEntityBlockPIDSSIL> renderer = new RenderRVPIDS<>(dispatcher, PIDSRVSIL2.TileEntityBlockPIDSSIL.MAX_ARRIVALS, 6F, 11.7F, 2.45F, 11F, 20.7F, true, false, 0x000000, 22.5F, "rv_pids_sil_2");
+            renderer.setScriptPanelProfile(-0.21F, -0.410F, -0.520F, 136, 76).setScriptPanelRotation(22.5F);
+            return renderer;
+        });
+        /* The projector reuses the RV renderer in projector mode: its panel hangs in the air, placed
+           by the block's own offset, rotation and scale, so the same draw code is reused with a
+           different transform. The type is named rather than left to inference because
+           setProjectorMode() gives the compiler nothing to infer from. */
+        RegistryClient.registerTileEntityRenderer(BlockEntityTypes.PIDS_PROJECTOR_TILE_ENTITY.get(), dispatcher -> {
+            final RenderRVPIDS<PIDSProjector.TileEntityBlockPIDSProjector> renderer = new RenderRVPIDS<>(dispatcher, PIDSProjector.TileEntityBlockPIDSProjector.MAX_ARRIVALS, 6, 8.25F, 6, 11F, 20, true, false, 0x000000, 0, "pids_projector");
+            renderer.setProjectorMode(true);
+            return renderer;
+        });
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.SIGNAL_LIGHT_RED_ENTITY_1.get(), dispatcher -> new RenderConstantSignalLight<>(dispatcher, true, 0xFFFF0000, false));
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.SIGNAL_LIGHT_RED_ENTITY_2.get(), dispatcher -> new RenderConstantSignalLight<>(dispatcher, true, 0xFFFF0000, true));
         RegistryClient.registerTileEntityRenderer(BlockEntityTypes.SIGNAL_LIGHT_BLUE_ENTITY.get(), dispatcher -> new RenderConstantSignalLight<>(dispatcher, true, 0xFF0000FF, true));
@@ -109,13 +117,29 @@ public class JobanClient {
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_FARESAVER_CONFIG_SCREEN, PacketClient::openFaresaverScreenS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_JOBAN_PIDS_CONFIG_SCREEN, PacketClient::openJobanPIDSScreenS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_RV_PIDS_CONFIG_SCREEN, PacketClient::openRVPIDSScreenS2C);
+        RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_PIDS_PROJECTOR_SCREEN, PacketClient::openPIDSProjectorScreenS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_SUBSIDY_CONFIG_SCREEN, PacketClient::openSubsidyScreenS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_PLAY_NETWORK_SOUND, PacketClient::playNetworkSoundS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_OPEN_SOUND_LOOPER_SCREEN, PacketClient::openSoundLooperScreenS2C);
         RegistryClient.registerNetworkReceiver(IPacketJoban.PACKET_VERSION_CHECK, PacketClient::versionCheckS2C);
+
+        /* Scripting engine: parsed lazily on the next resource reload */
+        Scripting.init();
+        registerClientTick(Scripting::tick);
     }
 
     @ExpectPlatform
     public static void registerParticle(SimpleParticleType particle, ParticleProvider<SimpleParticleType> provider) {
+    }
+
+    /**
+     * Runs the task at the end of every client tick.
+     * <p>
+     * Architectury API is not a runtime dependency on Fabric, so this cannot use
+     * {@code dev.architectury.event.events.client.ClientTickEvent}: that class is not
+     * present at runtime and would crash on the first tick registration.
+     */
+    @ExpectPlatform
+    public static void registerClientTick(Runnable task) {
     }
 }

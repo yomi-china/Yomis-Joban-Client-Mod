@@ -1,0 +1,91 @@
+// Compiles the Rhino engine inside a private package.
+//
+// Minecraft mods all live on a single class loader, so an unrelocated
+// `org.mozilla.javascript` clashes with any other mod that ships its own Rhino
+// copy (WorldEdit does, for example). Whichever copy is loaded first wins for
+// both mods, and an older copy silently loses features - e.g. template
+// literals stop being interpolated. Building the engine from relocated sources
+// guarantees the scripting layer always talks to the Rhino it was built against.
+//
+// The relocation happens on the source text instead of on the compiled jar:
+// that keeps every relocated class as ordinary source code, so the IDE can
+// navigate into the engine, and Rhino's own string literals - the bytecode
+// generator embeds type signatures such as "(Lorg/mozilla/javascript/Context;)V" -
+// are relocated by the same replacement.
+
+plugins {
+	id "java"
+	id "idea"
+}
+
+def relocatedPackage = "com.jsblock.lib.org.mozilla"
+
+// The engine is resolved through :common, whose Loom-provided repositories are
+// the ones able to serve it from the shared Gradle cache (offline builds).
+def rhinoEngineFiles = project(":common").configurations.rhinoEngine
+def rhinoSourcesFiles = project(":common").configurations.rhinoSources
+
+def relocateRhinoSources = tasks.register("relocateRhinoSources", Sync) {
+	description = "Rewrites the Rhino sources into ${relocatedPackage}"
+	group = "build"
+
+	// Everything the engine needs at runtime that is not bytecode - the message
+	// bundles behind Rhino's error messages, plus the license notices - only
+	// exists in the released binary jar.
+	from({ zipTree(rhinoEngineFiles.singleFile) }) {
+		exclude "**/*.class"
+	}
+	// The sources jar ships nothing but Java files, so it contributes those only.
+	from({ zipTree(rhinoSourcesFiles.singleFile) }) {
+		include "**/*.java"
+	}
+
+	into(layout.buildDirectory.dir("relocated-sources"))
+
+	includeEmptyDirs = false
+	exclude "META-INF/MANIFEST.MF", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA"
+	eachFile { details ->
+		if (details.path.startsWith("org/mozilla/")) {
+			details.path = "com/jsblock/lib/" + details.path
+		}
+	}
+
+	doLast {
+		fileTree(destinationDir) {
+			include "**/*.java"
+		}.each { File source ->
+			// Byte level, so the replacement cannot damage any non-ASCII comment
+			// or string literal of the original file.
+			//
+			// Both the dotted and the slashed spelling have to be rewritten: type
+			// descriptors embedded by the bytecode generator (`(Lorg/mozilla/
+			// javascript/Context;)V`) and script class names ("org.mozilla.javascript.
+			// gen.1") are not covered by the dotted replacement alone, and a single
+			// missed descriptor makes every generated class fail verification.
+			def text = new String(source.bytes, "ISO-8859-1")
+			def relocated = text
+					.replace("org.mozilla", relocatedPackage)
+					.replace("org/mozilla", relocatedPackage.replace('.', '/'))
+			if (relocated != text) {
+				source.bytes = relocated.getBytes("ISO-8859-1")
+			}
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java.srcDir(relocateRhinoSources)
+		resources {
+			srcDir(relocateRhinoSources)
+			exclude "**/*.java"
+		}
+	}
+}
+
+// The vendored engine is plain Java and must not run through the Manifold
+// preprocessor that every Minecraft-facing project of this build is compiled
+// with (its javac plugin is not on this project's classpath).
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs = []
+}

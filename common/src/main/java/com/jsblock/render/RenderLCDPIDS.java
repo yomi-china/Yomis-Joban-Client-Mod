@@ -43,6 +43,7 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
 
     private static final float BACKGROUND_WIDTH = 111F;
     private static final float BACKGROUND_HEIGHT = 60F;
+    private static final String PIDS_TYPE = "lcd_pids";
     private final float scale;
     private final float totalScaledWidth;
     private final float destinationStart;
@@ -82,12 +83,20 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
         this.showPlatforms = showPlatforms;
         this.rotation = rotation;
         this.defaultTextColor = defaultTextColor;
+        /* JCM 2.x's LCDPIDSRenderer carries its own literals, so a scripted preset lands where its
+           author put it. The base class defaults are the RV set, which is why these exist. */
+        setScriptPanelProfile(-0.19F, -0.125F, -0.130F, 133, 72);
     }
 
     @Override
     public void render(T entity, Level world, String[] customMessages, boolean[] hideArrivals, boolean hidePlatforms, PIDSPreset preset, List<Long> filteredPlatformIds, float delta, PoseStack matrices, MultiBufferSource vertexConsumers, int light, int overlay) {
         final BlockPos pos = entity.getBlockPos();
         final Direction facing = IBlock.getStatePropertySafe(world, pos, HorizontalDirectionalBlock.FACING);
+
+        /* If the player is too far away from the PIDS that not even the train renders */
+        if (RenderTrains.shouldNotRender(pos, Math.min(MAX_VIEW_DISTANCE, RenderTrains.maxTrainRenderDistance), rotate90 ? null : facing)) {
+            return;
+        }
 
         try {
             final PIDSPreset pidsPreset = preset == null ? DEFAULT_PRESET : preset;
@@ -97,6 +106,15 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
             final int languageTicks = (int) Math.floor(MTRClient.getGameTick()) / SWITCH_LANGUAGE_TICKS;
             final MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
             final List<ScheduleEntry> scheduleList = new ArrayList<>();
+
+            /* A preset with a script paints the whole panel itself against JCM 2.x's canvas for
+               this PIDS type, so the built-in path is skipped; its placement is JCM 2.x's own
+               literals from the block centre. A script that is missing or will not parse paints
+               nothing, and the built-in panel is drawn instead.
+               See RenderPIDSBase#renderScriptPanel. */
+            if (pidsPreset.hasScript() && renderScriptPanel(matrices, vertexConsumers, immediate, textRenderer, entity, world, facing, pidsPreset, PIDS_TYPE, customMessages, hideArrivals, !showPlatforms, filteredPlatformIds, rotate90)) {
+                return;
+            }
 
             matrices.pushPose();
             matrices.translate(0.5, 0, 0.5);
@@ -115,11 +133,6 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
             }
 
             matrices.popPose();
-
-            /* If the player is too far away from the PIDS that not even the train renders */
-            if (RenderTrains.shouldNotRender(pos, Math.min(MAX_VIEW_DISTANCE, RenderTrains.maxTrainRenderDistance), rotate90 ? null : facing)) {
-                return;
-            }
 
             if (!filteredPlatformIds.isEmpty()) {
                 for(long platformId : filteredPlatformIds) {
@@ -157,12 +170,15 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
 
             /* Loop through each arrival */
             for (int i = 0; i < maxArrivals; i++) {
+                /* A hidden row renders nothing at all (not even a custom message) and does not consume an arrival */
+                if (hideArrivals[i]) continue;
+
                 final String destinationString;
                 final boolean useCustomMessage;
                 final ScheduleEntry currentSchedule = entryIndex < scheduleList.size() ? scheduleList.get(entryIndex) : null;
                 final Route route = currentSchedule == null ? null : ClientData.DATA_CACHE.routeIdMap.get(currentSchedule.routeId);
 
-                if (entryIndex < scheduleList.size() && !hideArrivals[i] && route != null) {
+                if (entryIndex < scheduleList.size() && route != null) {
                     final String[] destinationSplit = ClientData.DATA_CACHE.getFormattedRouteDestination(route, currentSchedule.currentStationIndex, "").split("\\|");
                     final boolean isLightRailRoute = route.isLightRailRoute;
                     final String[] routeNumberSplit = route.lightRailRouteNumber.split("\\|");
@@ -234,7 +250,6 @@ public class RenderLCDPIDS<T extends BlockEntityMapper> extends RenderPIDSBase<T
                     }
                 }
                 matrices.popPose();
-                if(hideArrivals[i]) continue;
                 if(useCustomMessage && pidsPreset.customTextPushArrival) continue;
                 entryIndex++;
             }

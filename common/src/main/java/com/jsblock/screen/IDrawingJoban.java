@@ -26,7 +26,16 @@ public interface IDrawingJoban {
     }
 
     static void drawStringWithFont(PoseStack matrices, Font textRenderer, MultiBufferSource.BufferSource immediate, String text, IGui.HorizontalAlignment horizontalAlignment, IGui.VerticalAlignment verticalAlignment, IGui.HorizontalAlignment xAlignment, float x, float y, float maxWidth, float maxHeight, float scale, boolean keepRatio, int textColor, boolean shadow, int light, String font, boolean sameSize, mtr.client.IDrawing.DrawingCallback drawingCallback) {
-        final Style style = Config.useMTRFont() ? Style.EMPTY.withFont(new ResourceLocation(font)) : Style.EMPTY;
+        drawStringWithFontStyled(matrices, textRenderer, immediate, text, horizontalAlignment, verticalAlignment, xAlignment, x, y, maxWidth, maxHeight, scale, keepRatio, textColor, shadow, light, font, sameSize, drawingCallback, false, false, 1);
+    }
+
+    /**
+     * Same as the overloads above, with additional font style control.
+     * @param lineHeightFactor multiplier applied to the line height, {@code 1} being the default
+     */
+    static void drawStringWithFontStyled(PoseStack matrices, Font textRenderer, MultiBufferSource.BufferSource immediate, String text, IGui.HorizontalAlignment horizontalAlignment, IGui.VerticalAlignment verticalAlignment, IGui.HorizontalAlignment xAlignment, float x, float y, float maxWidth, float maxHeight, float scale, boolean keepRatio, int textColor, boolean shadow, int light, String font, boolean sameSize, mtr.client.IDrawing.DrawingCallback drawingCallback, boolean bold, boolean italic, float lineHeightFactor) {
+        final Style style = (Config.useMTRFont() ? Style.EMPTY.withFont(new ResourceLocation(font)) : Style.EMPTY).withBold(bold).withItalic(italic);
+        final float lineHeight = IGui.LINE_HEIGHT * (lineHeightFactor <= 0 ? 1 : lineHeightFactor);
 
         while (text.contains("||")) {
             text = text.replace("||", "|");
@@ -43,8 +52,15 @@ public interface IDrawingJoban {
             final FormattedCharSequence orderedText = Text.literal(stringSplitPart).setStyle(style).getVisualOrderText();
             orderedTexts.add(orderedText);
 
-            totalHeight += IGui.LINE_HEIGHT * (isCJK ? 2 : 1);
-            final int width = textRenderer.width(orderedText) * (isCJK ? 2 : 1);
+            /* The multiplier the layout reserves has to be the one the drawing applies.
+               These two used to disagree: the layout always reserved 2x for a CJK run while
+               the drawing only scaled by 2 when sameSize was false. That made boxed text --
+               anything with size(...) -- come out at half the size its own box was measured
+               for, and unboxed text come out at double the size the preset author wrote,
+               depending only on which way the flag was set. */
+            final int cjkScale = isCJK && !sameSize ? 2 : 1;
+            totalHeight += (int) (lineHeight * cjkScale);
+            final int width = textRenderer.width(orderedText) * cjkScale;
             if (width > totalWidth) {
                 totalWidth = width;
             }
@@ -92,7 +108,7 @@ public interface IDrawingJoban {
                 matrices.popPose();
             }
 
-            offset += IGui.LINE_HEIGHT * extraScale;
+            offset += lineHeight * extraScale;
         }
 
         matrices.popPose();

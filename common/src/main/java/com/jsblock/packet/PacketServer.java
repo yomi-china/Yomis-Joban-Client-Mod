@@ -1,12 +1,7 @@
 package com.jsblock.packet;
 
 import com.jsblock.Joban;
-import com.jsblock.block.ButterflyLight;
-import com.jsblock.block.FareSaver1;
-import com.jsblock.block.JobanPIDSBase;
-import com.jsblock.block.PIDSRVBase;
-import com.jsblock.block.SoundLooper;
-import com.jsblock.block.SubsidyMachine1;
+import com.jsblock.block.*;
 import io.netty.buffer.Unpooled;
 import mtr.Registry;
 import net.minecraft.core.BlockPos;
@@ -19,14 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_BUTTERFLY_CONFIG_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_FARESAVER_CONFIG_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_JOBAN_PIDS_CONFIG_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_RV_PIDS_CONFIG_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_SOUND_LOOPER_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_OPEN_SUBSIDY_CONFIG_SCREEN;
-import static com.jsblock.packet.IPacketJoban.PACKET_PLAY_NETWORK_SOUND;
-import static com.jsblock.packet.IPacketJoban.PACKET_VERSION_CHECK;
+import static com.jsblock.packet.IPacketJoban.*;
 import static mtr.data.SerializedDataBase.PACKET_STRING_READ_LENGTH;
 
 /**
@@ -261,5 +249,79 @@ public class PacketServer {
         packet.writeBlockPos(pos);
         packet.writeFloat(volume);
         Registry.sendToPlayer(player, PACKET_PLAY_NETWORK_SOUND, packet);
+    }
+
+    /* Packet to open the PIDS Projector GUI in client */
+    public static void sendPIDSProjectorScreenS2C(ServerPlayer player, BlockPos pos, String presetID,
+                                                  String[] messages, boolean[] rowHidden, boolean hidePlatformNumber,
+                                                  Set<Long> platformIds,
+                                                  double offsetX, double offsetY, double offsetZ,
+                                                  double rotateX, double rotateY, double rotateZ, double scale) {
+        final FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+        packet.writeBlockPos(pos);
+        packet.writeInt(messages.length);
+        for (String message : messages) {
+            packet.writeUtf(message == null ? "" : message, PACKET_STRING_READ_LENGTH);
+        }
+        packet.writeInt(rowHidden.length);
+        for (boolean hidden : rowHidden) {
+            packet.writeBoolean(hidden);
+        }
+        packet.writeInt(platformIds.size());
+        platformIds.forEach(packet::writeLong);
+        packet.writeBoolean(hidePlatformNumber);
+        packet.writeUtf(presetID == null ? "" : presetID, PACKET_STRING_READ_LENGTH);
+        packet.writeDouble(offsetX);
+        packet.writeDouble(offsetY);
+        packet.writeDouble(offsetZ);
+        packet.writeDouble(rotateX);
+        packet.writeDouble(rotateY);
+        packet.writeDouble(rotateZ);
+        packet.writeDouble(scale);
+        Registry.sendToPlayer(player, PACKET_OPEN_PIDS_PROJECTOR_SCREEN, packet);
+    }
+
+    /* When Server receives the new PIDS Projector Config sent by client */
+    public static void receivePIDSProjectorC2S(MinecraftServer minecraftServer, ServerPlayer player, FriendlyByteBuf packet) {
+        final BlockPos pos = packet.readBlockPos();
+        final int messageCount = packet.readInt();
+        final String[] messages = new String[messageCount];
+        for (int i = 0; i < messageCount; i++) {
+            messages[i] = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        }
+        final int rowCount = packet.readInt();
+        final boolean[] rowHidden = new boolean[rowCount];
+        for (int i = 0; i < rowCount; i++) {
+            rowHidden[i] = packet.readBoolean();
+        }
+        final int platformIdCount = packet.readInt();
+        final Set<Long> platformIds = new HashSet<>();
+        for (int i = 0; i < platformIdCount; i++) {
+            platformIds.add(packet.readLong());
+        }
+        final boolean hidePlatformNumber = packet.readBoolean();
+        final String presetID = packet.readUtf(PACKET_STRING_READ_LENGTH);
+        final double offsetX = packet.readDouble();
+        final double offsetY = packet.readDouble();
+        final double offsetZ = packet.readDouble();
+        final double rotateX = packet.readDouble();
+        final double rotateY = packet.readDouble();
+        final double rotateZ = packet.readDouble();
+        final double scale = packet.readDouble();
+        minecraftServer.execute(() -> {
+            final BlockEntity entity = player.level().getBlockEntity(pos);
+            if (entity instanceof PIDSProjector.TileEntityBlockPIDSProjector) {
+                final PIDSProjector.TileEntityBlockPIDSProjector projector = (PIDSProjector.TileEntityBlockPIDSProjector) entity;
+                /* MTR's own setter for a panel's text, hidden rows and platforms; the projector
+                   inherits it, and it is what pids.getCustomMessage(i) reads back. */
+                projector.setData(messages, rowHidden, platformIds, 0);
+                projector.setPresetID(presetID);
+                projector.setHidePlatformNumber(hidePlatformNumber);
+                projector.setProjectorTransform(offsetX, offsetY, offsetZ, rotateX, rotateY, rotateZ, scale);
+            } else {
+                Joban.LOGGER.warn("[PIDS projector] could not apply: block entity at " + pos + " is "
+                        + (entity == null ? "null" : entity.getClass().getName()));
+            }
+        });
     }
 }
